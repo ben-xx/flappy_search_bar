@@ -272,6 +272,12 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   }
 
   @override
+  void dispose() {
+    _searchQueryController?.dispose();
+    super.dispose();
+  }
+
+  @override
   void onListChanged(List<T> items) {
     setState(() {
       _loading = false;
@@ -284,6 +290,12 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     setState(() {
       _loading = true;
       _error = null;
+      _animate = true;
+    });
+  }
+
+  void searchable() {
+    setState(() {
       _animate = true;
     });
   }
@@ -302,6 +314,12 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   }
 
   _onTextChanged(String newText) async {
+    // debug - disabled
+    print('SearchBarState._onTextChanged: $newText');
+
+    if (newText != null && newText.length >= widget.minimumChars)
+      searchable();
+
     if (_debounce?.isActive ?? false) {
       _debounce.cancel();
     }
@@ -381,13 +399,16 @@ class _SearchBarState<T> extends State<SearchBar<T>>
           padding: widget.searchBarPadding,
           child: Container(
             height: 80,
+            padding: EdgeInsets.only(right: 9),
+            decoration: BoxDecoration(
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Flexible(
                   child: AnimatedContainer(
                     duration: Duration(milliseconds: 200),
-                    width: _animate ? widthMax * .8 : widthMax,
+                    width: _animate ? widthMax * .7 : widthMax,
                     decoration: BoxDecoration(
                       borderRadius: widget.searchBarStyle.borderRadius,
                       color: widget.searchBarStyle.backgroundColor,
@@ -422,11 +443,25 @@ class _SearchBarState<T> extends State<SearchBar<T>>
                     child: AnimatedContainer(
                       duration: Duration(milliseconds: 200),
                       width:
-                          _animate ? MediaQuery.of(context).size.width * .2 : 0,
+                          _animate ? MediaQuery.of(context).size.width * .23 : 0,
                       child: Container(
-                        color: Colors.transparent,
+                        decoration: BoxDecoration(
+                          border: Border.all(),
+                          color: Colors.transparent,
+                        ),
                         child: Center(
-                          child: widget.cancellationWidget,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: Icon(Icons.search, size: 30,),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: widget.cancellationWidget,
+                              )
+                            ],
+                          ),
                         ),
                       ),
                     ),
