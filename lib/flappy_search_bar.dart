@@ -6,6 +6,7 @@ import 'package:async/async.dart';
 import 'package:flappy_search_bar/scaled_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:keyboard_visibility/keyboard_visibility.dart';
 
 import 'search_bar_style.dart';
 
@@ -265,6 +266,10 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   bool _animate = false;
   List<T> _list = [];
   SearchBarController searchBarController;
+  KeyboardVisibilityNotification _keyboardVisibility =
+    KeyboardVisibilityNotification();
+  bool _keyboardVisible;
+  int _keyboardListenerId;
 
   @override
   void initState() {
@@ -273,11 +278,18 @@ class _SearchBarState<T> extends State<SearchBar<T>>
         widget.searchBarController ?? SearchBarController<T>();
     searchBarController.setListener(this);
     searchBarController.setTextController(_searchQueryController, widget.minimumChars);
+    _keyboardListenerId = _keyboardVisibility.addNewListener(
+      onChange: (bool visible) {
+        print('Keyboard Visible? $visible');
+        _keyboardVisible = visible;
+      }
+    );
   }
 
   @override
   void dispose() {
     _searchQueryController?.dispose();
+    _keyboardVisibility.removeListener(_keyboardListenerId);
     super.dispose();
   }
 
@@ -306,6 +318,8 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
   void sendSearch(String newText) {
     searchBarController._search(newText, widget.onSearch);
+    if (_keyboardVisible)
+      FocusScope.of(context).unfocus();
   }
 
   @override
@@ -319,6 +333,11 @@ class _SearchBarState<T> extends State<SearchBar<T>>
       _loading = false;
       _error = widget.onError != null ? widget.onError(error) : Text("error");
     });
+  }
+
+  void _onSubmitted(String value) {
+    print('Keyboard closed with value: $value');
+    sendSearch(value);
   }
 
   _onTextChanged(String newText) async {
@@ -428,6 +447,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
                         child: TextField(
                           controller: _searchQueryController,
                           onChanged: _onTextChanged,
+                          onSubmitted: _onSubmitted,
                           style: widget.textStyle,
                           decoration: InputDecoration(
                             border: InputBorder.none,
