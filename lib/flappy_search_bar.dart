@@ -148,6 +148,9 @@ class SearchBar<T> extends StatefulWidget {
   /// Cooldown between each call to avoid too many
   final Duration debounceDuration;
 
+  /// false will disable auto-searching. Must press search icon button
+  final bool autoSearch;
+
   /// Widget to show when loading
   final Widget loader;
 
@@ -222,6 +225,7 @@ class SearchBar<T> extends StatefulWidget {
     this.searchBarController,
     this.minimumChars = 3,
     this.debounceDuration = const Duration(milliseconds: 500),
+    this.autoSearch = false,
     this.loader = const Center(child: CircularProgressIndicator()),
     this.onError,
     this.emptyWidget = const SizedBox.shrink(),
@@ -300,6 +304,10 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     });
   }
 
+  void sendSearch(String newText) {
+    searchBarController._search(newText, widget.onSearch);
+  }
+
   @override
   void onClear() {
     _cancel();
@@ -318,7 +326,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     print('SearchBarState._onTextChanged: $newText');
 
     if (newText != null && newText.length >= widget.minimumChars)
-      searchable();
+      searchable(); // callback to show search/cancel icons near searchbar
 
     if (_debounce?.isActive ?? false) {
       _debounce.cancel();
@@ -326,7 +334,8 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
     _debounce = Timer(widget.debounceDuration, () async {
       if (newText.length >= widget.minimumChars && widget.onSearch != null) {
-        searchBarController._search(newText, widget.onSearch);
+        if (widget.autoSearch)
+          searchBarController._search(newText, widget.onSearch);
       } else {
         setState(() {
           _list.clear();
@@ -421,7 +430,6 @@ class _SearchBarState<T> extends State<SearchBar<T>>
                           onChanged: _onTextChanged,
                           style: widget.textStyle,
                           decoration: InputDecoration(
-                            icon: widget.icon,
                             border: InputBorder.none,
                             hintText: widget.hintText,
                             hintStyle: widget.hintStyle,
@@ -434,34 +442,36 @@ class _SearchBarState<T> extends State<SearchBar<T>>
                     ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: _cancel,
-                  child: AnimatedOpacity(
-                    opacity: _animate ? 1.0 : 0,
-                    curve: Curves.easeIn,
-                    duration: Duration(milliseconds: _animate ? 1000 : 0),
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
-                      width:
-                          _animate ? MediaQuery.of(context).size.width * .23 : 0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(),
-                          color: Colors.transparent,
-                        ),
-                        child: Center(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 1,
-                                child: Icon(Icons.search, size: 30,),
+                AnimatedOpacity(
+                  opacity: _animate ? 1.0 : 0,
+                  curve: Curves.easeIn,
+                  duration: Duration(milliseconds: _animate ? 1000 : 0),
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 200),
+                    width:
+                        _animate ? MediaQuery.of(context).size.width * .23 : 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                      child: Center(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: IconButton(
+                                icon: widget.icon,
+                                onPressed: () => sendSearch(_searchQueryController.text),
                               ),
-                              Expanded(
-                                flex: 1,
-                                child: widget.cancellationWidget,
-                              )
-                            ],
-                          ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: IconButton(
+                                icon: widget.cancellationWidget,
+                                onPressed: _cancel,
+                              ),
+                            )
+                          ],
                         ),
                       ),
                     ),
