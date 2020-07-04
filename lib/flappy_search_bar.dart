@@ -161,6 +161,15 @@ class SearchBar<T> extends StatefulWidget {
   /// Widget to show by default
   final Widget placeHolder;
 
+  /// Widget to display results, e.g. PageView, ListView, etc. to override
+  /// default StaggeredGridView.
+  /// Takes an itemBuilder function which builds a widget for each item
+  final Widget Function(List<T> items,
+      {Widget Function(T item, int index) itemBuilder}) displayList;
+
+  /// Builder function to use inside custom display List widget
+  final Widget Function(T item, int index) displayItemBuilder;
+
   /// Widget showed on left of the search bar
   final Widget icon;
 
@@ -222,7 +231,7 @@ class SearchBar<T> extends StatefulWidget {
   SearchBar({
     Key key,
     @required this.onSearch,
-    @required this.onItemFound,
+    this.onItemFound,
     this.searchBarController,
     this.minimumChars = 3,
     this.debounceDuration = const Duration(milliseconds: 500),
@@ -232,6 +241,8 @@ class SearchBar<T> extends StatefulWidget {
     this.emptyWidget = const SizedBox.shrink(),
     this.header,
     this.placeHolder,
+    this.displayList,
+    this.displayItemBuilder,
     this.icon = const Icon(Icons.search),
     this.hintText = "",
     this.hintStyle = const TextStyle(color: Color.fromRGBO(142, 142, 147, 1)),
@@ -342,7 +353,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
   _onTextChanged(String newText) async {
     // debug - disabled
-    print('SearchBarState._onTextChanged: $newText');
+    //print('SearchBarState._onTextChanged: $newText');
 
     if (newText != null && newText.length >= widget.minimumChars)
       searchable(); // callback to show search/cancel icons near searchbar
@@ -380,8 +391,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     });
   }
 
-  Widget _buildListView(
-      List<T> items, Widget Function(T item, int index) builder) {
+  Widget _buildListView(List<T> items, Widget Function(T item, int index) builder) {
     return Padding(
       padding: widget.listPadding,
       child: StaggeredGridView.countBuilder(
@@ -401,6 +411,14 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     );
   }
 
+  Widget _buildCustomListView(List<T> items,
+      {Widget Function(T item, int index) itemBuilder}) {
+    return Padding(
+      padding: widget.listPadding,
+      child: widget.displayList(items, itemBuilder: itemBuilder),
+    );
+  }
+
   Widget _buildContent(BuildContext context) {
     if (_error != null) {
       return _error;
@@ -411,6 +429,8 @@ class _SearchBarState<T> extends State<SearchBar<T>>
       return _buildListView(
           widget.suggestions, widget.buildSuggestion ?? widget.onItemFound);
     } else if (_list.isNotEmpty) {
+      if (widget.displayList != null)
+        return _buildCustomListView(_list, itemBuilder: widget.displayItemBuilder);
       return _buildListView(_list, widget.onItemFound);
     } else {
       return widget.emptyWidget;
