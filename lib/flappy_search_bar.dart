@@ -228,6 +228,9 @@ class SearchBar<T> extends StatefulWidget {
   /// Set a padding on the list
   final EdgeInsetsGeometry listPadding;
 
+  /// If not null, redirect searchText to this route
+  final PageRoute Function(String) redirectSearchTo;
+
   SearchBar({
     Key key,
     @required this.onSearch,
@@ -262,6 +265,7 @@ class SearchBar<T> extends StatefulWidget {
     this.listPadding = const EdgeInsets.all(0),
     this.searchBarPadding = const EdgeInsets.all(0),
     this.headerPadding = const EdgeInsets.all(0),
+    this.redirectSearchTo
   }) : super(key: key);
 
   @override
@@ -347,7 +351,14 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   }
 
   void _onSubmitted(String value) {
-    print('Keyboard closed with value: $value');
+    print('_onSubmitted: Keyboard closed with value: $value');
+    if (widget.redirectSearchTo != null) {
+      print('RedirectSearch not null.  Redirecting...');
+      Navigator.of(context).pushAndRemoveUntil(
+          widget.redirectSearchTo(value),
+              (Route<dynamic> route) => false
+      );
+    }
     sendSearch(value);
   }
 
@@ -437,12 +448,27 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     }
   }
 
+  /// If redirectSearchTo constructor arg is supplied, we won't be showing results
+  /// with this particular SearchBar widget instance, but redirecting to another.
+  /// Only build / show the search text field when redirecting searches.
+  /// When not redirecting, build / show the results of the search in _buildContent
   @override
   Widget build(BuildContext context) {
     final widthMax = MediaQuery.of(context).size.width;
+
+    List<Widget> _columnChildren = List();
+    _columnChildren.add(_searchBar(widthMax)); // always show search field
+
+    // only build/show if not redirecting/injecting to another SearchBar
+    if (widget.redirectSearchTo == null) {
+      _columnChildren.add(_headerPadding());
+      _columnChildren.add(_buildContentExpanded());
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
+      children: _columnChildren,
+      /*children: <Widget>[
         Padding(
           padding: widget.searchBarPadding,
           child: Container(
@@ -528,7 +554,109 @@ class _SearchBarState<T> extends State<SearchBar<T>>
         Expanded(
           child: _buildContent(context),
         ),
-      ],
+      ],*/
+    );
+  }
+
+  Widget _searchBar(double widthMax) {
+    return Padding(
+      padding: widget.searchBarPadding,
+      child: Container(
+        height: 80,
+        padding: EdgeInsets.only(right: 9),
+        decoration: BoxDecoration(
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Flexible(
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 200),
+                width: _animate ? widthMax * .7 : widthMax,
+                decoration: BoxDecoration(
+                  borderRadius: widget.searchBarStyle.borderRadius,
+                  color: widget.searchBarStyle.backgroundColor,
+                ),
+                child: Padding(
+                  padding: widget.searchBarStyle.padding,
+                  child: Theme(
+                    child: TextField(
+                      controller: _searchQueryController,
+                      onChanged: _onTextChanged,
+                      onSubmitted: _onSubmitted,
+                      style: widget.textStyle,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: widget.hintText,
+                        hintStyle: widget.hintStyle,
+                      ),
+                    ),
+                    data: Theme.of(context).copyWith(
+                      primaryColor: widget.iconActiveColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            AnimatedOpacity(
+              opacity: _animate ? 1.0 : 0,
+              curve: Curves.easeIn,
+              duration: Duration(milliseconds: _animate ? 1000 : 0),
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 200),
+                width:
+                _animate ? MediaQuery.of(context).size.width * .23 : 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: IconButton(
+                            icon: widget.icon,
+                            onPressed: () {
+                              if (widget.redirectSearchTo == null)
+                                sendSearch(_searchQueryController.text);
+                              else
+                                Navigator.of(context).pushAndRemoveUntil(
+                                    widget.redirectSearchTo(_searchQueryController.text),
+                                    (Route<dynamic> route) => false
+                                );
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: IconButton(
+                            icon: widget.cancellationWidget,
+                            onPressed: _cancel,
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _headerPadding() {
+    return Padding(
+      padding: widget.headerPadding,
+      child: widget.header ?? Container(),
+    );
+  }
+
+  Widget _buildContentExpanded() {
+    return Expanded(
+      child: _buildContent(context),
     );
   }
 }
