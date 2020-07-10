@@ -20,7 +20,24 @@ mixin _ControllerListener<T> on State<SearchBar<T>> {
   void onError(Error error) {}
 }
 
-class SearchBarController<T> {
+enum SearchControllerStatus {
+  listChanged,
+  loading,
+  cleared,
+  error
+}
+
+class ControllerStatusNotifier {
+  ValueNotifier<SearchControllerStatus> _valueNotifier =
+    ValueNotifier(SearchControllerStatus.cleared);
+  void notify(SearchControllerStatus status) {
+    _valueNotifier.value = status;
+  }
+
+  ValueNotifier<SearchControllerStatus> getListenable() => _valueNotifier;
+}
+
+class SearchBarController<T>{
   final List<T> _list = [];
   final List<T> _filteredList = [];
   final List<T> _sortedList = [];
@@ -31,6 +48,7 @@ class SearchBarController<T> {
   int Function(T a, T b) _lastSorting;
   CancelableOperation _cancelableOperation;
   int minimumChars;
+  ControllerStatusNotifier statusNotifier = ControllerStatusNotifier();
 
   void setTextController(TextEditingController _searchQueryController, minimunChars) {
     this._searchQueryController = _searchQueryController;
@@ -310,6 +328,8 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
   @override
   void onListChanged(List<T> items) {
+    if (items.length > 0)
+      searchBarController.statusNotifier.notify(SearchControllerStatus.listChanged);
     setState(() {
       _loading = false;
       _list = items;
@@ -318,6 +338,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
   @override
   void onLoading() {
+    searchBarController.statusNotifier.notify(SearchControllerStatus.loading);
     setState(() {
       _loading = true;
       _error = null;
@@ -344,6 +365,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
   @override
   void onError(Error error) {
+    searchBarController.statusNotifier.notify(SearchControllerStatus.error);
     setState(() {
       _loading = false;
       _error = widget.onError != null ? widget.onError(error) : Text("error");
@@ -392,6 +414,8 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     if (widget.onCancelled != null) {
       widget.onCancelled();
     }
+
+    searchBarController.statusNotifier.notify(SearchControllerStatus.cleared);
 
     setState(() {
       _searchQueryController.clear();
