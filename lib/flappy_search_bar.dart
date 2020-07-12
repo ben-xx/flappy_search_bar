@@ -330,6 +330,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
   @override
   void onListChanged(List<T> items) {
+    print('flappy onListChanged() setState');
     if (items.length > 0)
       searchBarController.statusNotifier.notify(SearchControllerStatus.listChanged);
     setState(() {
@@ -341,6 +342,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   @override
   void onLoading() {
     searchBarController.statusNotifier.notify(SearchControllerStatus.loading);
+    print('flappy onLoading() setState');
     setState(() {
       _loading = true;
       _error = null;
@@ -349,9 +351,23 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   }
 
   void searchable() {
-    setState(() {
-      _animate = true;
-    });
+
+    // if !autoSearch, only call setState/change value if _animate == false
+    if (!widget.autoSearch) {
+      if (_animate == false) {
+        print('flappy searchable() setState. _animate? $_animate');
+        setState(() {
+          _animate = true;
+        });
+      }
+    }
+    else {
+      print('flappy searchable() setState. _animate? $_animate');
+      setState(() {
+        _animate = true;
+      });
+    }
+
   }
 
   void sendSearch(String newText) {
@@ -387,29 +403,30 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   }
 
   _onTextChanged(String newText) async {
-    // debug - disabled
-    //print('SearchBarState._onTextChanged: $newText');
-
-    if (newText != null && newText.length >= widget.minimumChars)
+    if (newText != null && newText.length >= widget.minimumChars) {
       searchable(); // callback to show search/cancel icons near searchbar
+    }
 
     if (_debounce?.isActive ?? false) {
       _debounce.cancel();
     }
 
-    _debounce = Timer(widget.debounceDuration, () async {
-      if (newText.length >= widget.minimumChars && widget.onSearch != null) {
-        if (widget.autoSearch)
-          searchBarController._search(newText, widget.onSearch);
-      } else {
-        setState(() {
-          _list.clear();
-          _error = null;
-          _loading = false;
-          _animate = false;
-        });
-      }
-    });
+    if (widget.autoSearch) {
+      _debounce = Timer(widget.debounceDuration, () async {
+        if (newText.length >= widget.minimumChars && widget.onSearch != null) {
+          if (widget.autoSearch)
+            searchBarController._search(newText, widget.onSearch);
+        } else {
+          setState(() {
+            _list.clear();
+            _error = null;
+            _loading = false;
+            _animate = false;
+          });
+        }
+      });
+    }
+
   }
 
   void _cancel() {
