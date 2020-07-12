@@ -21,6 +21,7 @@ mixin _ControllerListener<T> on State<SearchBar<T>> {
 }
 
 enum SearchControllerStatus {
+  ready,
   listChanged,
   loading,
   cleared,
@@ -311,6 +312,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
         widget.searchBarController ?? SearchBarController<T>();
     searchBarController.setListener(this);
     searchBarController.setTextController(_searchQueryController, widget.minimumChars);
+    print('Flappy setTextController complete');
     _keyboardListenerId = _keyboardVisibility.addNewListener(
       onChange: (bool visible) {
         print('Keyboard Visible? $visible');
@@ -478,6 +480,10 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   /// When not redirecting, build / show the results of the search in _buildContent
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      print('Flappy build complete');
+      searchBarController.statusNotifier.notify(SearchControllerStatus.ready);
+    });
     final widthMax = MediaQuery.of(context).size.width;
 
     List<Widget> _columnChildren = List();
