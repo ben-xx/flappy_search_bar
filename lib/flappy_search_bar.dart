@@ -304,6 +304,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     KeyboardVisibilityNotification();
   bool _keyboardVisible;
   int _keyboardListenerId;
+  bool _searchAttempted = false;
 
   @override
   void initState() {
@@ -372,6 +373,10 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
   void sendSearch(String newText) {
     searchBarController._search(newText, widget.onSearch);
+    if (newText != null && newText.length >= widget.minimumChars) {
+      _searchAttempted = true;
+      print('searchBarController._search was attempted');
+    }
     if (_keyboardVisible)
       FocusScope.of(context).unfocus();
   }
@@ -438,6 +443,8 @@ class _SearchBarState<T> extends State<SearchBar<T>>
 
     setState(() {
       _searchQueryController.clear();
+      _searchAttempted = false;
+//      searchBarController.lastSearchedText = null;
       _list.clear();
       _error = null;
       _loading = false;
@@ -478,7 +485,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
       return _error;
     } else if (_loading) {
       return widget.loader;
-    } else if (_searchQueryController.text.length < widget.minimumChars) {
+    } else if (_list.isEmpty && _searchAttempted == false) {
       if (widget.placeHolder != null) return widget.placeHolder;
       return _buildListView(
           widget.suggestions, widget.buildSuggestion ?? widget.onItemFound);
