@@ -177,6 +177,9 @@ class SearchBar<T> extends StatefulWidget {
   /// Widget to show when no item were found
   final Widget emptyWidget;
 
+  /// Used to set focus on search bar
+  final FocusNode focusNode;
+
   /// Widget to show by default
   final Widget placeHolder;
 
@@ -261,6 +264,7 @@ class SearchBar<T> extends StatefulWidget {
     this.loader = const Center(child: CircularProgressIndicator()),
     this.onError,
     this.emptyWidget = const SizedBox.shrink(),
+    this.focusNode,
     this.header,
     this.placeHolder,
     this.displayList,
@@ -636,6 +640,7 @@ class _SearchBarState<T> extends State<SearchBar<T>>
                   child: Theme(
                     child: TextField(
                       controller: _searchQueryController,
+                      focusNode: widget.focusNode,
                       onChanged: _onTextChanged,
                       onSubmitted: _onSubmitted,
                       style: widget.textStyle,
