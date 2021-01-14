@@ -6,7 +6,8 @@ import 'package:async/async.dart';
 import 'package:flappy_search_bar/scaled_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:keyboard_visibility/keyboard_visibility.dart';
+//import 'package:keyboard_visibility/keyboard_visibility.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 
 import 'search_bar_style.dart';
 
@@ -304,10 +305,10 @@ class _SearchBarState<T> extends State<SearchBar<T>>
   bool _animate = false;
   List<T> _list = [];
   SearchBarController searchBarController;
-  KeyboardVisibilityNotification _keyboardVisibility =
-    KeyboardVisibilityNotification();
+  var keyboardVisibilityController = KeyboardVisibilityController();
+  StreamSubscription keyVisSub;
   bool _keyboardVisible;
-  int _keyboardListenerId;
+  //int _keyboardListenerId;
   bool _searchAttempted = false;
 
   @override
@@ -318,18 +319,23 @@ class _SearchBarState<T> extends State<SearchBar<T>>
     searchBarController.setListener(this);
     searchBarController.setTextController(_searchQueryController, widget.minimumChars);
     print('Flappy setTextController complete');
-    _keyboardListenerId = _keyboardVisibility.addNewListener(
+    /*_keyboardListenerId = _keyboardVisibility.addNewListener(
       onChange: (bool visible) {
         print('Keyboard Visible? $visible');
         _keyboardVisible = visible;
       }
-    );
+    );*/
+    keyVisSub = keyboardVisibilityController.onChange.listen((bool visible) {
+      print('Keyboard Visible? $visible');
+      _keyboardVisible = visible;
+    });
   }
 
   @override
   void dispose() {
     _searchQueryController?.dispose();
-    _keyboardVisibility.removeListener(_keyboardListenerId);
+    //_keyboardVisibility.removeListener(_keyboardListenerId);
+    keyVisSub.cancel();
     super.dispose();
   }
 
